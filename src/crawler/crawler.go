@@ -9,11 +9,6 @@ type Fetcher interface {
 	getPage(url string) (error, *FetchedPage)
 }
 
-type FetchedPage struct {
-	Links  []string
-	Assets []string
-}
-
 type PageNode struct {
 	Links []string
 	Assets []string

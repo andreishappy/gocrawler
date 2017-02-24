@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"fmt"
 	"golang.org/x/net/html"
-	"errors"
+	"io"
 )
 
 type WebFetcher struct {
@@ -12,57 +12,55 @@ type WebFetcher struct {
 }
 
 type FetchedPage struct {
-
+	Links  []string
+	Assets []string
 }
 
-func (WebFetcher) getPage(url string) (error, *FetchedPage) {
+func (WebFetcher) getPage(url string, base string) (error, *FetchedPage) {
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("Error")
+		return err, nil
 	}
-	defer resp.Body.Close()
 
-	z := html.NewTokenizer(resp.Body)
+	links, _ := getLinksAndAssets(resp.Body)
+	fmt.Println(links)
+	return nil, &FetchedPage{Links: links}
+}
+
+func getLinksAndAssets(body io.ReadCloser) (links []string, assets []string) {
+	links = make([]string, 0, 10)
+
+	defer body.Close()
+	z := html.NewTokenizer(body)
 	for {
-		fmt.Println("yo")
 		tt := z.Next()
 		switch {
 		case tt == html.ErrorToken:
-			fmt.Println("Error token")
-			// End of the document, we're done
-			return errors.New("hello"), nil
+			//end
+			return
 		case tt == html.StartTagToken:
 			t := z.Token()
 
 			ok, url := getHref(t)
 			if ok {
-				fmt.Println(url)
-			}
-
-			isAnchor := t.Data == "a"
-			if isAnchor {
-				fmt.Println("We found a link!\n")
+				links = append(links, url)
 			}
 		}
 	}
-
-	//body, err := ioutil.ReadAll(resp.Body)
-	//fmt.Println(err)
-	//fmt.Println(body)
-	return nil, &FetchedPage{}
 }
 
 func getHref(t html.Token) (ok bool, href string) {
-	// Iterate over all of the Token's attributes until we find an "href"
+	isAnchor := t.Data == "a"
+	if !isAnchor {
+		return
+	}
+
 	for _, a := range t.Attr {
 		if a.Key == "href" {
 			href = a.Val
 			ok = true
 		}
 	}
-
-	// "bare" return will return the variables (ok, href) as defined in
-	// the function definition
 	return
 }
 
