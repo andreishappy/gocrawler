@@ -31,7 +31,7 @@ var withAssets = map[string]*FetchedPage{
 	"hi": {Links: []string{"go"}, Assets: []string{"hiAsset1", "hiAsset2"}},
 }
 
-func (t TestFeeder) getLinks(url string) (error, *FetchedPage) {
+func (t TestFeeder) getPage(url string) (error, *FetchedPage) {
 	elem, ok := t.m[url]
 	if (ok) {
 		return nil, elem

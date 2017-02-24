@@ -5,6 +5,10 @@ import (
 	"sync"
 )
 
+type Fetcher interface {
+	getPage(url string) (error, *FetchedPage)
+}
+
 type FetchedPage struct {
 	Links  []string
 	Assets []string
@@ -15,12 +19,8 @@ type PageNode struct {
 	Assets []string
 }
 
-type Feeder interface {
-  getLinks(url string) (error, *FetchedPage)
-}
-
 type Crawl struct {
-	feeder Feeder
+	fetcher Fetcher
 }
 
 func (c *Crawl) crawl(url string) map[string]PageNode {
@@ -34,7 +34,7 @@ func (c *Crawl) crawl(url string) map[string]PageNode {
 		defer wg.Done()
 
 		//get the links and assets
-		e, page := c.feeder.getLinks(url)
+		e, page := c.fetcher.getPage(url)
 
 		if (e != nil) {
 			fmt.Println("Error when fetching " + url)
