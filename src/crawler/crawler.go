@@ -12,14 +12,15 @@ type PageNode struct {
 
 type Crawl struct {
 	fetcher Fetcher
+	linkValidator func(string) bool
 }
 
-func NewCrawl(fetcher Fetcher) *Crawl {
-	return &Crawl{fetcher: fetcher}
+func NewCrawl(fetcher Fetcher, linkValidator func(string) bool) *Crawl {
+	return &Crawl{fetcher: fetcher, linkValidator: linkValidator}
 }
 
 type Fetcher interface {
-	GetPage(url string, baseUrl string) (*FetchedPage, error)
+	GetPage(url string) (*FetchedPage, error)
 }
 
 type FetchedPage struct {
@@ -39,7 +40,7 @@ func (c *Crawl) Crawl(url string) map[string]PageNode {
 		defer fmt.Println("done with " + url)
 
 		//get the links and assets
-		page, e := c.fetcher.GetPage(url, "")
+		page, e := c.fetcher.GetPage(url)
 
 		if (e != nil) {
 			fmt.Println("Error when fetching " + url)
@@ -59,7 +60,7 @@ func (c *Crawl) Crawl(url string) map[string]PageNode {
 			//Spawn off go routines for the links
 			for _, link := range page.Links {
 				_, ok = result[link]
-				if(!ok) {
+				if(!ok && c.linkValidator(link)) {
 					wg.Add(1)
 					fmt.Println("spawning go routine for ", link)
 					go crawlFunc(link, c)

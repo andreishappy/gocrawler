@@ -5,30 +5,30 @@ import (
 	"golang.org/x/net/html"
 	"io"
 	"crawler"
-	"strings"
 )
 
 type HttpGetter func(url string) (resp *http.Response, err error)
 
-func NewWebFetcher(getter HttpGetter) *WebFetcher {
-	return &WebFetcher{get: getter}
+func NewWebFetcher(getter HttpGetter, linkValidator func(string) bool) *WebFetcher {
+	return &WebFetcher{get: getter, linkValidator: linkValidator}
 }
 
 type WebFetcher struct {
 	get HttpGetter
+	linkValidator func(string) bool
 }
 
-func (f *WebFetcher) GetPage(url string, base string) (*crawler.FetchedPage, error) {
+func (f *WebFetcher) GetPage(url string) (*crawler.FetchedPage, error) {
 	resp, err := f.get(url)
 	if err != nil {
 		return nil, err
 	}
 
-	links, _ := getLinksAndAssets(resp.Body)
-	return &crawler.FetchedPage{Links: links, Assets: []string{}}, nil
+	links, assets := f.getLinksAndAssets(resp.Body)
+	return &crawler.FetchedPage{Links: links, Assets: assets}, nil
 }
 
-func getLinksAndAssets(body io.ReadCloser) (links []string, assets []string) {
+func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, assets []string) {
 	links = make([]string, 0, 10)
 	assets = make([]string, 0, 10)
 
@@ -43,12 +43,12 @@ func getLinksAndAssets(body io.ReadCloser) (links []string, assets []string) {
 		case tt == html.StartTagToken:
 			t := z.Token()
 
-			ok, link := getHref(t)
+			ok, link := f.getHref(t)
 			if ok {
 				links = append(links, link)
 			}
 
-			ok, asset := getAsset(t)
+			ok, asset := f.getAsset(t)
 			if ok {
 				assets = append(assets, asset)
 			}
@@ -56,8 +56,16 @@ func getLinksAndAssets(body io.ReadCloser) (links []string, assets []string) {
 	}
 }
 
-func getAsset(t html.Token) (ok bool, asset string) {
-	return
+func (f *WebFetcher) getAsset(t html.Token) (ok bool, asset string) {
+	isImage := t.Data == "img"
+	if isImage {
+		for _, a := range t.Attr {
+			if a.Key == "src" {
+				asset = a.Val
+				ok = true
+			}
+		}
+	}
 
 	//link -> href
 	//script -> src
@@ -65,16 +73,17 @@ func getAsset(t html.Token) (ok bool, asset string) {
 
 
 	//figure out video and audio
+	return
 }
 
-func getHref(t html.Token) (ok bool, link string) {
+func (f *WebFetcher) getHref(t html.Token) (ok bool, link string) {
 	isAnchor := t.Data == "a"
 	if !isAnchor {
 		return
 	}
 
 	for _, a := range t.Attr {
-		if a.Key == "href" && strings.HasPrefix(a.Val, "http://tomblomfield.com/") {
+		if a.Key == "href" && f.linkValidator(a.Val) {
 			link = a.Val
 			ok = true
 		}

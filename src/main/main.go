@@ -1,17 +1,18 @@
 package main
 
 import (
-	"fmt"
 	"crawler"
 	"fetcher"
 	"net/http"
 	"github.com/davecgh/go-spew/spew"
+	"path_utils"
 )
 
 func main() {
-	fmt.Println("hello")
-	f := fetcher.NewWebFetcher(http.Get)
-	p := crawler.NewCrawl(f)
-	spew.Dump(p.Crawl("http://tomblomfield.com/"))
+	url := "http://tomblomfield.com/"
+	validator := path_utils.HostUrlValidator(url)
+	f := fetcher.NewWebFetcher(http.Get, validator)
+	p := crawler.NewCrawl(f, validator)
+	spew.Dump(p.Crawl(url))
 }
 
