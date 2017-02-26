@@ -9,14 +9,14 @@ import (
 
 type HttpGetter func(url string) (resp *http.Response, err error)
 
-func NewWebFetcher(getter HttpGetter, linkValidator func(string) bool, linkRelativiser func(string) string) *WebFetcher {
-	return &WebFetcher{get: getter, linkValidator: linkValidator, linkRelativiser: linkRelativiser}
+func NewWebFetcher(getter HttpGetter, linkValidator func(string) bool, buildLink func(string) string) *WebFetcher {
+	return &WebFetcher{get: getter, linkIsValid: linkValidator, buildLink: buildLink}
 }
 
 type WebFetcher struct {
-	get HttpGetter
-	linkValidator func(string) bool
-	linkRelativiser func(string) string
+	get         HttpGetter
+	linkIsValid func(string) bool
+	buildLink   func(string) string
 }
 
 func (f *WebFetcher) GetPage(url string) (*crawler.FetchedPage, error) {
@@ -47,8 +47,8 @@ func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, asse
 			t := z.Token()
 
 			ok, link := f.getHref(t)
-			link = f.linkRelativiser(link)
-			if ok && f.linkValidator(link) {
+			link = f.buildLink(link)
+			if ok && f.linkIsValid(link) {
 				_, alreadyAdded := linkMap[link]
 				if !alreadyAdded {
 					linkMap[link] = true
@@ -79,8 +79,7 @@ func (f *WebFetcher) getAsset(t html.Token) (ok bool, asset string) {
 	if isImage {
 		for _, a := range t.Attr {
 			if a.Key == "src" {
-				asset = a.Val
-				ok = true
+				return true, a.Val
 			}
 		}
 	}

@@ -30,6 +30,12 @@ func returnTrue(string) bool {
 	return true
 }
 
+func returnTrueFor(one string) func(string) bool {
+	return func(other string) bool {
+		return one == other
+	}
+}
+
 func returnFalse(string) bool {
 	return false
 }
@@ -105,7 +111,7 @@ func TestWhenClientReturnsHrefInOtherElementThanANotReturnedAsLink(t *testing.T)
 func TestWhenTheLinkAddedIsTheRelativisedOne(t *testing.T) {
 	relativiser := func(string) string { return "relative" }
 
-	f := NewWebFetcher(returnString("<html> <a href=\"link1\"> </html>"), returnTrue, relativiser)
+	f := NewWebFetcher(returnString("<html> <a href=\"link1\"> </html>"), returnTrueFor("relative"), relativiser)
 	page, err := f.GetPage("hello")
 
 	expectedLinks := []string{"relative"}
