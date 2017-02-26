@@ -3,6 +3,7 @@ package path_utils
 import (
 	"net/url"
 	"fmt"
+	"strings"
 )
 
 
@@ -18,6 +19,17 @@ func HostUrlValidator(host string) func(url string) bool {
 	}
 }
 
+func HostUrlRelativiser(host string) func(url string) string {
+	hostUrl, err := url.Parse(host)
+	if err != nil {
+		panic(fmt.Sprintf("Invalid url %s", host))
+	}
+
+	return func(url string) string {
+		return relative(hostUrl, url)
+	}
+}
+
 func hasHost(host string, urlString string) bool {
 	u, err := url.Parse(urlString)
 
@@ -26,4 +38,12 @@ func hasHost(host string, urlString string) bool {
 	}
 
 	return u.Host == host
+}
+
+func relative(base *url.URL, pathOrUrl string) string {
+	if (strings.HasPrefix(pathOrUrl, "/")) {
+		return fmt.Sprintf("%s://%s%s", base.Scheme, base.Host, pathOrUrl)
+	} else {
+		return pathOrUrl
+	}
 }

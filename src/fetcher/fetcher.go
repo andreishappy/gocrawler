@@ -9,13 +9,14 @@ import (
 
 type HttpGetter func(url string) (resp *http.Response, err error)
 
-func NewWebFetcher(getter HttpGetter, linkValidator func(string) bool) *WebFetcher {
-	return &WebFetcher{get: getter, linkValidator: linkValidator}
+func NewWebFetcher(getter HttpGetter, linkValidator func(string) bool, linkRelativiser func(string) string) *WebFetcher {
+	return &WebFetcher{get: getter, linkValidator: linkValidator, linkRelativiser: linkRelativiser}
 }
 
 type WebFetcher struct {
 	get HttpGetter
 	linkValidator func(string) bool
+	linkRelativiser func(string) string
 }
 
 func (f *WebFetcher) GetPage(url string) (*crawler.FetchedPage, error) {
@@ -46,7 +47,8 @@ func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, asse
 			t := z.Token()
 
 			ok, link := f.getHref(t)
-			if ok {
+			link = f.linkRelativiser(link)
+			if ok && f.linkValidator(link) {
 				_, alreadyAdded := linkMap[link]
 				if !alreadyAdded {
 					linkMap[link] = true
@@ -99,7 +101,7 @@ func (f *WebFetcher) getHref(t html.Token) (ok bool, link string) {
 	}
 
 	for _, a := range t.Attr {
-		if a.Key == "href" && f.linkValidator(a.Val) {
+		if a.Key == "href" {
 			link = a.Val
 			ok = true
 		}
