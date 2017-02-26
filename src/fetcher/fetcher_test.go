@@ -68,6 +68,16 @@ func TestWhenClientReturnsOneHrefReturnedAsLink(t *testing.T) {
 	assert.Equal(t, expectedLinks, page.Links)
 }
 
+func TestWhenClientReturnsSameLinkTwiceReturnsOnlyOneLink(t *testing.T) {
+	f := NewWebFetcher(returnString("<html> <a href=\"link1\"> <a href=\"link1\"> </html>"), returnTrue)
+	page, err := f.GetPage("hello")
+
+	expectedLinks := []string{"link1"}
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedLinks, page.Links)
+}
+
 func TestWhenClientReturnsOneHrefAndValidatorReturnsFalseDoesNotAddLink(t *testing.T) {
 	f := NewWebFetcher(returnString("<html> <a href=\"link1\"> <a href=\"link2\"> </html>"), returnFalse)
 	page, err := f.GetPage("hello")

@@ -29,7 +29,7 @@ func (f *WebFetcher) GetPage(url string) (*crawler.FetchedPage, error) {
 }
 
 func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, assets []string) {
-	links = make([]string, 0, 10)
+	linkMap := map[string]bool{}
 	assets = make([]string, 0, 10)
 
 	defer body.Close()
@@ -39,13 +39,18 @@ func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, asse
 		switch {
 		case tt == html.ErrorToken:
 			//end
+			links = sliceFromMap(linkMap)
+
 			return
 		case tt == html.StartTagToken:
 			t := z.Token()
 
 			ok, link := f.getHref(t)
 			if ok {
-				links = append(links, link)
+				_, alreadyAdded := linkMap[link]
+				if !alreadyAdded {
+					linkMap[link] = true
+				}
 			}
 
 			ok, asset := f.getAsset(t)
@@ -54,6 +59,17 @@ func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, asse
 			}
 		}
 	}
+}
+func sliceFromMap(m map[string]bool) []string {
+	result := make([]string, len(m))
+
+	i := 0
+	for k := range m {
+		result[i] = k
+		i++
+	}
+
+	return result
 }
 
 func (f *WebFetcher) getAsset(t html.Token) (ok bool, asset string) {
