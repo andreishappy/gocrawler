@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crawler"
 	"fetcher"
 	"net/http"
 	"github.com/davecgh/go-spew/spew"
@@ -9,6 +8,8 @@ import (
 	"os"
 	"time"
 	"log"
+	"chanler"
+	"crawler"
 )
 
 func main() {
@@ -18,11 +19,21 @@ func main() {
 	isValid := path_utils.HostUrlValidator(url)
 	linkBuilder := path_utils.HostUrlRelativiser(url)
 	f := fetcher.NewWebFetcher(http.Get, isValid, linkBuilder)
-	p := crawler.NewCrawl(f, isValid)
-	graph := p.Crawl(url)
-	spew.Dump(graph)
+
+	p := chanler.NewChanler(f, isValid)
+
+	nodes := p.Crawl(url)
+
+	spew.Dump(nodes)
 
 	elapsed := time.Since(start)
-	log.Printf("Took %s to do %d nodes", elapsed, len(graph))
+	log.Printf("Took %s to do %d nodes 1", elapsed, len(nodes))
+	time.Sleep(300 * time.Millisecond)
+	start = time.Now()
+	pWG := crawler.NewCrawl(f, isValid)
+	graphWG := pWG.Crawl(url)
+	elapsed = time.Since(start)
+	log.Printf("Took %s to do %d nodes 2", elapsed, len(graphWG))
+
 }
 

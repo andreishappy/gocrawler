@@ -4,10 +4,19 @@ import (
 	"net/http"
 	"golang.org/x/net/html"
 	"io"
-	"crawler"
 )
 
 type HttpGetter func(url string) (resp *http.Response, err error)
+
+type Fetcher interface {
+	GetPage(url string) (*FetchedPage, error)
+}
+
+type FetchedPage struct {
+	Url    string
+	Links  []string
+	Assets []string
+}
 
 func NewWebFetcher(getter HttpGetter, linkValidator func(string) bool, buildLink func(string) string) *WebFetcher {
 	return &WebFetcher{get: getter, linkIsValid: linkValidator, buildLink: buildLink}
@@ -19,14 +28,14 @@ type WebFetcher struct {
 	buildLink   func(string) string
 }
 
-func (f *WebFetcher) GetPage(url string) (*crawler.FetchedPage, error) {
+func (f *WebFetcher) GetPage(url string) (*FetchedPage, error) {
 	resp, err := f.get(url)
 	if err != nil {
 		return nil, err
 	}
 
 	links, assets := f.getLinksAndAssets(resp.Body)
-	return &crawler.FetchedPage{Links: links, Assets: assets}, nil
+	return &FetchedPage{Url: url, Links: links, Assets: assets}, nil
 }
 
 func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, assets []string) {

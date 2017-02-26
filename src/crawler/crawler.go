@@ -3,24 +3,16 @@ package crawler
 import (
 	"fmt"
 	"sync"
+	"fetcher"
 )
 
 type Crawl struct {
-	fetcher       Fetcher
-	linkValidator func(string) bool
+	fetcher     fetcher.Fetcher
+	shouldCrawl func(string) bool
 }
 
-func NewCrawl(fetcher Fetcher, linkValidator func(string) bool) *Crawl {
-	return &Crawl{fetcher: fetcher, linkValidator: linkValidator}
-}
-
-type Fetcher interface {
-	GetPage(url string) (*FetchedPage, error)
-}
-
-type FetchedPage struct {
-	Links  []string
-	Assets []string
+func NewCrawl(fetcher fetcher.Fetcher, shouldCrawl func(string) bool) *Crawl {
+	return &Crawl{fetcher: fetcher, shouldCrawl: shouldCrawl}
 }
 
 type PageNode struct {
@@ -53,7 +45,7 @@ func (c *Crawl) Crawl(url string) map[string]PageNode {
 		//Spawn off go routines for the links
 		for _, link := range page.Links {
 			_, ok := dispatched[link]
-			if (!ok && c.linkValidator(link)) {
+			if (!ok && c.shouldCrawl(link)) {
 				dispatched[link] = true
 				wg.Add(1)
 				fmt.Println("spawning go routine for ", link)
