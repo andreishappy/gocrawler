@@ -43,7 +43,7 @@ func (t TestFeeder) getPage(url string) (error, *FetchedPage) {
 func TestDoesNotHangWhenAPageReferencesItself(t *testing.T) {
 	f := TestFeeder{m: selfReference}
 	p := Crawl{f}
-	assert.Equal(t, map[string]PageNode{"hello": {Links: []string{"hello"}, Assets: []string{}}}, p.crawl("hello"))
+	assert.Equal(t, map[string]PageNode{"hello": {Links: []string{"hello"}, Assets: []string{}}}, p.Crawl("hello"))
 }
 
 func TestDoesNotHangWhenA2PageCircularDependencyExists(t *testing.T) {
@@ -53,14 +53,14 @@ func TestDoesNotHangWhenA2PageCircularDependencyExists(t *testing.T) {
 		"hello": {Links: []string{"hi"}, Assets: []string{}},
 		"hi": {Links: []string{"hello"}, Assets: []string{}},
 	}
-	assert.Equal(t, expected, p.crawl("hello"))
+	assert.Equal(t, expected, p.Crawl("hello"))
 }
 
 func TestAddPageWhenFetcherReturnsError(t *testing.T) {
 	f := TestFeeder{m: map[string]*FetchedPage{}}
 	p := Crawl{f}
 	expected := map[string]PageNode{}
-	assert.Equal(t, expected, p.crawl("hello"))
+	assert.Equal(t, expected, p.Crawl("hello"))
 }
 
 func TestAddsAssetsToPages(t *testing.T) {
@@ -70,5 +70,5 @@ func TestAddsAssetsToPages(t *testing.T) {
 		"hello": {Links: []string{"hi"}, Assets: []string{"helloAsset"}},
 		"hi": {Links: []string{"go"}, Assets: []string{"hiAsset1", "hiAsset2"}},
 	}
-	assert.Equal(t, expected, p.crawl("hello"))
+	assert.Equal(t, expected, p.Crawl("hello"))
 }

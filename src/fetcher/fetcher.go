@@ -2,33 +2,35 @@ package fetcher
 
 import (
 	"net/http"
-	"fmt"
 	"golang.org/x/net/html"
 	"io"
+	"crawler"
+	"strings"
 )
 
+type HttpGetter func(url string) (resp *http.Response, err error)
+
+func NewWebFetcher(getter HttpGetter) *WebFetcher {
+	return &WebFetcher{get: getter}
+}
+
 type WebFetcher struct {
-
+	get HttpGetter
 }
 
-type FetchedPage struct {
-	Links  []string
-	Assets []string
-}
-
-func (WebFetcher) getPage(url string, base string) (error, *FetchedPage) {
-	resp, err := http.Get(url)
+func (f *WebFetcher) GetPage(url string, base string) (*crawler.FetchedPage, error) {
+	resp, err := f.get(url)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
 	links, _ := getLinksAndAssets(resp.Body)
-	fmt.Println(links)
-	return nil, &FetchedPage{Links: links}
+	return &crawler.FetchedPage{Links: links, Assets: []string{}}, nil
 }
 
 func getLinksAndAssets(body io.ReadCloser) (links []string, assets []string) {
 	links = make([]string, 0, 10)
+	assets = make([]string, 0, 10)
 
 	defer body.Close()
 	z := html.NewTokenizer(body)
@@ -41,23 +43,39 @@ func getLinksAndAssets(body io.ReadCloser) (links []string, assets []string) {
 		case tt == html.StartTagToken:
 			t := z.Token()
 
-			ok, url := getHref(t)
+			ok, link := getHref(t)
 			if ok {
-				links = append(links, url)
+				links = append(links, link)
+			}
+
+			ok, asset := getAsset(t)
+			if ok {
+				assets = append(assets, asset)
 			}
 		}
 	}
 }
 
-func getHref(t html.Token) (ok bool, href string) {
+func getAsset(t html.Token) (ok bool, asset string) {
+	return
+
+	//link -> href
+	//script -> src
+	//img -> src
+
+
+	//figure out video and audio
+}
+
+func getHref(t html.Token) (ok bool, link string) {
 	isAnchor := t.Data == "a"
 	if !isAnchor {
 		return
 	}
 
 	for _, a := range t.Attr {
-		if a.Key == "href" {
-			href = a.Val
+		if a.Key == "href" && strings.HasPrefix(a.Val, "http://tomblomfield.com/") {
+			link = a.Val
 			ok = true
 		}
 	}
