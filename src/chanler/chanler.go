@@ -2,8 +2,8 @@ package chanler
 
 import (
 	"fmt"
-	"sync"
 	"fetcher"
+	"concurrentset"
 )
 
 type Chanler struct {
@@ -15,7 +15,7 @@ func NewChanler(fetcher fetcher.Fetcher, shouldCrawl func(string) bool) *Chanler
 	return &Chanler{fetcher: fetcher, shouldCrawl: shouldCrawl}
 }
 
-func (c *Chanler) crawlWithVisited(url string, ret chan fetcher.FetchedPage, visited map[string]bool, mutex *sync.Mutex) {
+func (c *Chanler) crawlWithVisited(url string, ret chan fetcher.FetchedPage, dispatched concurrentset.ConcurrentStringSet) {
 	defer close(ret)
 	page, e := c.fetcher.GetPage(url)
 	if e != nil {
@@ -25,15 +25,14 @@ func (c *Chanler) crawlWithVisited(url string, ret chan fetcher.FetchedPage, vis
 
 	results := make([]chan fetcher.FetchedPage, 0, len(page.Links))
 	for _, link := range page.Links {
-		if !c.alreadyDispatched(link, visited, mutex) && c.shouldCrawl(link) {
-			fmt.Println("Spawning go routine for " + link)
-			ch := make(chan fetcher.FetchedPage)
-			c.recordDispatch(link, visited, mutex)
-			go c.crawlWithVisited(link, ch, visited, mutex)
-			results = append(results, ch)
-		} else {
-			fmt.Println("Not starting go routine for " + link)
+		if dispatched.HasAlreadySeen(link) || !c.shouldCrawl(link) {
+			continue
 		}
+		fmt.Println("Spawning go routine for " + link)
+		ch := make(chan fetcher.FetchedPage)
+		dispatched.RecordSeen(link)
+		go c.crawlWithVisited(link, ch, dispatched)
+		results = append(results, ch)
 	}
 
 	for _, ch := range results {
@@ -41,39 +40,19 @@ func (c *Chanler) crawlWithVisited(url string, ret chan fetcher.FetchedPage, vis
 			ret <- p
 		}
 	}
-	fmt.Println("Finished with all ", len(results), " spawns of " + url)
-}
-
-func (c *Chanler) alreadyDispatched(url string, visited map[string]bool, mutex *sync.Mutex) bool {
-	mutex.Lock()
-	defer mutex.Unlock()
-	_, alreadyVisited := visited[url]
-	return alreadyVisited
-}
-
-func (c *Chanler) recordDispatch(url string, visited map[string]bool, mutex *sync.Mutex) {
-	mutex.Lock()
-	defer mutex.Unlock()
-	visited[url] = true
 }
 
 func (c *Chanler) Crawl(url string) map[string]fetcher.FetchedPage {
 	ret := make(chan fetcher.FetchedPage)
-	visited := map[string]bool{}
-	mutex := &sync.Mutex{}
-	c.alreadyDispatched(url, visited, mutex)
-	go c.crawlWithVisited(url, ret, visited, mutex)
+	dispatched := concurrentset.NewConcurrentStringSet()
+	dispatched.RecordSeen(url)
+	go c.crawlWithVisited(url, ret, dispatched)
 
 	result := map[string]fetcher.FetchedPage{}
 
-	for {
-		p, more := <- ret
-		if more {
-			fmt.Println("Adding page ", p)
-			result[p.Url] = p
-		} else {
-			fmt.Println("Done with pages")
-			return result
-		}
+	for p := range ret {
+		result[p.Url] = p
 	}
+
+	return result
 }

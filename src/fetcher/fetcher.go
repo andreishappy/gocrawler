@@ -50,7 +50,6 @@ func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, asse
 		case tt == html.ErrorToken:
 			//end
 			links = sliceFromMap(linkMap)
-
 			return
 		case tt == html.StartTagToken:
 			t := z.Token()

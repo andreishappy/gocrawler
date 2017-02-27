@@ -1,4 +1,4 @@
-package path_utils
+package urlhelper
 
 import (
 	"net/url"
