@@ -9,13 +9,27 @@ import (
 type HttpGetter func(url string) (resp *http.Response, err error)
 
 type Fetcher interface {
-	GetPage(url string) (*FetchedPage, error)
+	GetPage(url string) (Page, error)
 }
 
-type FetchedPage struct {
+type Page struct {
 	Url    string
 	Links  []string
 	Assets []string
+}
+
+func NewPage(url string) Page {
+	return Page{Url: url}
+}
+
+func (f Page)WithAssets(assets ...string) Page {
+	f.Assets = assets
+	return f
+}
+
+func (f Page)WithLinks(links ...string) Page {
+	f.Links = links
+	return f
 }
 
 func NewWebFetcher(getter HttpGetter, linkValidator func(string) bool, buildLink func(string) string) *WebFetcher {
@@ -28,14 +42,14 @@ type WebFetcher struct {
 	buildLink   func(string) string
 }
 
-func (f *WebFetcher) GetPage(url string) (*FetchedPage, error) {
+func (f *WebFetcher) GetPage(url string) (*Page, error) {
 	resp, err := f.get(url)
 	if err != nil {
 		return nil, err
 	}
 
 	links, assets := f.getLinksAndAssets(resp.Body)
-	return &FetchedPage{Url: url, Links: links, Assets: assets}, nil
+	return &Page{Url: url, Links: links, Assets: assets}, nil
 }
 
 func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, assets []string) {
@@ -70,6 +84,7 @@ func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, asse
 		}
 	}
 }
+
 func sliceFromMap(m map[string]bool) []string {
 	result := make([]string, len(m))
 

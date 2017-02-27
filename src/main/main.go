@@ -17,7 +17,7 @@ func main() {
 
 	url := os.Args[1]
 	isValid := urlhelper.HostUrlValidator(url)
-	linkBuilder := urlhelper.HostUrlRelativiser(url)
+	linkBuilder := urlhelper.AbsolutePathBuilder(url)
 	f := fetcher.NewWebFetcher(http.Get, isValid, linkBuilder)
 
 	p := chanler.NewChanler(f, isValid)
@@ -35,5 +35,21 @@ func main() {
 	spew.Dump(graphWG)
 	log.Printf("Took %s to do %d nodes 2", elapsed, len(graphWG))
 
+	log.Printf("Same: %t", same(graphWG, nodes))
+
+}
+
+func same(left map[string]fetcher.Page, right map[string]fetcher.Page) bool {
+	if len(left) != len(right) {
+		return false
+	}
+
+	for k, pLeft := range left {
+		pRight := right[k]
+		if len(pLeft.Links) != len(pRight.Links) {
+			return false
+		}
+	}
+	return true
 }
 

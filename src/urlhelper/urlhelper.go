@@ -19,7 +19,7 @@ func HostUrlValidator(host string) func(url string) bool {
 	}
 }
 
-func HostUrlRelativiser(host string) func(url string) string {
+func AbsolutePathBuilder(host string) func(url string) string {
 	hostUrl, err := url.Parse(host)
 	if err != nil {
 		panic(fmt.Sprintf("Invalid url %s", host))

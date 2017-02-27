@@ -16,25 +16,20 @@ func NewCrawl(fetcher fetcher.Fetcher, shouldCrawl func(string) bool) *Crawl {
 	return &Crawl{fetcher: fetcher, shouldCrawl: shouldCrawl}
 }
 
-type PageNode struct {
-	Links  []string
-	Assets []string
-}
-
-func (c *Crawl) Crawl(url string) map[string]PageNode {
+func (c *Crawl) Crawl(url string) map[string]fetcher.Page {
 	wg := &sync.WaitGroup{}
 	mutex := &sync.Mutex{}
-	result := map[string]PageNode{}
+	result := map[string]fetcher.Page{}
 	dispatched := concurrentset.NewConcurrentStringSet()
 
 	wg.Add(1)
-	dispatched.RecordSeen(url)
+	dispatched.Put(url)
 	go c.crawlConcurrent(url, wg, mutex, &dispatched, result)
 	wg.Wait()
 	return result
 }
 
-func (c *Crawl) crawlConcurrent(url string, wg *sync.WaitGroup, mutex *sync.Mutex, dispatched *concurrentset.ConcurrentStringSet, result map[string]PageNode) {
+func (c *Crawl) crawlConcurrent(url string, wg *sync.WaitGroup, mutex *sync.Mutex, dispatched *concurrentset.ConcurrentStringSet, result map[string]fetcher.Page) {
 	defer wg.Done()
 	//get the links and assets
 	page, e := c.fetcher.GetPage(url)
@@ -47,16 +42,16 @@ func (c *Crawl) crawlConcurrent(url string, wg *sync.WaitGroup, mutex *sync.Mute
 
 	//Spawn off go routines for the links
 	for _, link := range page.Links {
-		if (dispatched.HasAlreadySeen(link) || !c.shouldCrawl(link)) {
+		if (dispatched.Contains(link) || !c.shouldCrawl(link)) {
 			continue
 		}
-		dispatched.RecordSeen(link)
+		dispatched.Put(link)
 		wg.Add(1)
 		fmt.Println("spawning go routine for ", link)
 		go c.crawlConcurrent(link, wg, mutex, dispatched, result)
 	}
 
 	mutex.Lock()
-	result[url] = PageNode{Links: page.Links, Assets: page.Assets}
+	result[url] = *page
 	mutex.Unlock()
 }
