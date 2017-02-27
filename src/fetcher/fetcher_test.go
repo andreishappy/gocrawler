@@ -10,6 +10,10 @@ import (
 	"io"
 )
 
+//
+// Setup
+//
+
 type nopCloser struct {
 	io.Reader
 }
@@ -49,6 +53,10 @@ func body(bodyString string) *http.Response {
 	fmt.Println(b)
 	return &http.Response{Body: b}
 }
+
+//
+// WebFetcherTests
+//
 
 func TestWhenClientReturnsErrorFetcherReturnsError(t *testing.T) {
 	f := NewWebFetcher(returnError, returnTrue, identity)
@@ -109,12 +117,12 @@ func TestWhenClientReturnsHrefInOtherElementThanANotReturnedAsLink(t *testing.T)
 }
 
 func TestWhenTheLinkAddedIsTheRelativisedOne(t *testing.T) {
-	relativiser := func(string) string { return "relative" }
+	absolute := func(string) string { return "absolute" }
 
-	f := NewWebFetcher(returnString("<html> <a href=\"link1\"> </html>"), returnTrueFor("relative"), relativiser)
+	f := NewWebFetcher(returnString("<html> <a href=\"link1\"> </html>"), returnTrueFor("absolute"), absolute)
 	page, err := f.GetPage("hello")
 
-	expectedLinks := []string{"relative"}
+	expectedLinks := []string{"absolute"}
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedLinks, page.Links)

@@ -9,7 +9,7 @@ import (
 type HttpGetter func(url string) (resp *http.Response, err error)
 
 type Fetcher interface {
-	GetPage(url string) (Page, error)
+	GetPage(url string) (*Page, error)
 }
 
 type Page struct {
@@ -32,14 +32,14 @@ func (f Page)WithLinks(links ...string) Page {
 	return f
 }
 
-func NewWebFetcher(getter HttpGetter, linkValidator func(string) bool, buildLink func(string) string) *WebFetcher {
-	return &WebFetcher{get: getter, linkIsValid: linkValidator, buildLink: buildLink}
+func NewWebFetcher(getter HttpGetter, linkValidator func(string) bool, absoluteUrl func(string) string) *WebFetcher {
+	return &WebFetcher{get: getter, shouldRecordLink: linkValidator, absoluteUrl: absoluteUrl}
 }
 
 type WebFetcher struct {
-	get         HttpGetter
-	linkIsValid func(string) bool
-	buildLink   func(string) string
+	get              HttpGetter
+	shouldRecordLink func(string) bool
+	absoluteUrl      func(string) string
 }
 
 func (f *WebFetcher) GetPage(url string) (*Page, error) {
@@ -69,8 +69,8 @@ func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, asse
 			t := z.Token()
 
 			ok, link := f.getHref(t)
-			link = f.buildLink(link)
-			if ok && f.linkIsValid(link) {
+			link = f.absoluteUrl(link)
+			if ok && f.shouldRecordLink(link) {
 				_, alreadyAdded := linkMap[link]
 				if !alreadyAdded {
 					linkMap[link] = true

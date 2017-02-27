@@ -1,4 +1,4 @@
-package urlhelper
+package configuration
 
 import (
 	"net/url"

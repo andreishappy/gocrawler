@@ -12,14 +12,14 @@ type Crawl struct {
 	shouldCrawl func(string) bool
 }
 
-func NewCrawl(fetcher fetcher.Fetcher, shouldCrawl func(string) bool) *Crawl {
+func NewCrawler(fetcher fetcher.Fetcher, shouldCrawl func(string) bool) *Crawl {
 	return &Crawl{fetcher: fetcher, shouldCrawl: shouldCrawl}
 }
 
-func (c *Crawl) Crawl(url string) map[string]fetcher.Page {
+func (c *Crawl) CrawlUsingSync(url string) map[string]*fetcher.Page {
 	wg := &sync.WaitGroup{}
 	mutex := &sync.Mutex{}
-	result := map[string]fetcher.Page{}
+	result := map[string]*fetcher.Page{}
 	dispatched := concurrentset.NewConcurrentStringSet()
 
 	wg.Add(1)
@@ -29,7 +29,7 @@ func (c *Crawl) Crawl(url string) map[string]fetcher.Page {
 	return result
 }
 
-func (c *Crawl) crawlConcurrent(url string, wg *sync.WaitGroup, mutex *sync.Mutex, dispatched *concurrentset.ConcurrentStringSet, result map[string]fetcher.Page) {
+func (c *Crawl) crawlConcurrent(url string, wg *sync.WaitGroup, mutex *sync.Mutex, dispatched *concurrentset.ConcurrentStringSet, result map[string]*fetcher.Page) {
 	defer wg.Done()
 	//get the links and assets
 	page, e := c.fetcher.GetPage(url)
@@ -52,6 +52,6 @@ func (c *Crawl) crawlConcurrent(url string, wg *sync.WaitGroup, mutex *sync.Mute
 	}
 
 	mutex.Lock()
-	result[url] = *page
+	result[url] = page
 	mutex.Unlock()
 }
