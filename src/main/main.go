@@ -9,31 +9,39 @@ import (
 	"time"
 	"log"
 	"crawler"
+	"flag"
+	"fmt"
 )
 
 func main() {
 	start := time.Now()
 
 	url := os.Args[1]
+	var howToRun = flag.String("type", "channel", "Choose to use channels or sync")
+	var 
+	flag.Parse()
+
+	fmt.Println(*ip)
 	isValid := configuration.HostUrlValidator(url)
 	linkBuilder := configuration.AbsolutePathBuilder(url)
 
 	f := fetcher.NewWebFetcher(http.Get, isValid, linkBuilder)
 	p := crawler.NewChanler(f, isValid)
-	nodes := p.CrawlUsingChannels(url)
-
-	spew.Dump(nodes)
+	channelResult := p.CrawlUsingChannels(url)
+	spew.Dump(channelResult)
 	elapsed := time.Since(start)
-	log.Printf("Took %s to do %d nodes 1", elapsed, len(nodes))
+
+	log.Printf("Took %s to do %d nodes 1", elapsed, len(channelResult))
+
 	time.Sleep(300 * time.Millisecond)
 	start = time.Now()
 	pWG := crawler.NewCrawler(f, isValid)
-	graphWG := pWG.CrawlUsingSync(url)
+	syncResult := pWG.CrawlUsingSync(url)
 	elapsed = time.Since(start)
-	spew.Dump(graphWG)
+	spew.Dump(syncResult)
 
-	log.Printf("Took %s to do %d nodes 2", elapsed, len(graphWG))
-	log.Printf("Same: %t", same(graphWG, nodes))
+	log.Printf("Took %s to do %d nodes 2", elapsed, len(syncResult))
+	log.Printf("Same: %t", same(syncResult, channelResult))
 }
 
 func same(left map[string]fetcher.Page, right map[string]fetcher.Page) bool {

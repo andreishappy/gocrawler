@@ -107,11 +107,13 @@ func assertSameGraph(t *testing.T, expected map[string]fetcher.Page, actual map[
 		assertSameElements(t, expectedPage.Assets, actualPage.Assets, k)
 	}
 }
+
 func assertSameElements(t *testing.T, expected []string, actual []string, identifier string) {
 	expectedMap := mapFromArray(expected)
 	actualMap := mapFromArray(actual)
 	assert.Equal(t, expectedMap, actualMap, "Arrays for " + identifier + " do not have the same elements")
 }
+
 func mapFromArray(array []string) map[string]bool {
 	m := map[string]bool{}
 	for _, element := range array {
