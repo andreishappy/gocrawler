@@ -36,7 +36,7 @@ func main() {
 	log.Printf("Same: %t", same(graphWG, nodes))
 }
 
-func same(left map[string]*fetcher.Page, right map[string]*fetcher.Page) bool {
+func same(left map[string]fetcher.Page, right map[string]fetcher.Page) bool {
 	if len(left) != len(right) {
 		return false
 	}

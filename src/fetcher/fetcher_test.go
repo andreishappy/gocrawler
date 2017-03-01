@@ -18,8 +18,6 @@ type nopCloser struct {
 	io.Reader
 }
 
-func (nopCloser) Close() error { return nil }
-
 var returnError = func(url string) (resp *http.Response, err error) {
 	return nil, errors.New("fail")
 }
@@ -28,6 +26,14 @@ func returnString(bodyString string) func(url string) (resp *http.Response, err 
 	return func(url string) (resp *http.Response, err error) {
 		return body(bodyString), nil
 	}
+}
+
+func (nopCloser) Close() error { return nil }
+
+func body(bodyString string) *http.Response {
+	b := nopCloser{bytes.NewBufferString(bodyString)}
+	fmt.Println(b)
+	return &http.Response{Body: b}
 }
 
 func returnTrue(string) bool {
@@ -46,12 +52,6 @@ func returnFalse(string) bool {
 
 func identity(input string) string {
 	return input
-}
-
-func body(bodyString string) *http.Response {
-	b := nopCloser{bytes.NewBufferString(bodyString)}
-	fmt.Println(b)
-	return &http.Response{Body: b}
 }
 
 //
@@ -87,7 +87,7 @@ func TestWhenClientReturnsHrefsReturnedAsLinks(t *testing.T) {
 }
 
 func TestWhenClientReturnsSameLinkTwiceReturnsOnlyOneLink(t *testing.T) {
-	f := NewWebFetcher(returnString("<html> <a href=\"link1\"> <a href=\"link1\"> </html>"), returnTrue, identity)
+	f := NewWebFetcher(returnString("<html> <a href=\"link1\"></a> <a href=\"link1\"></a> </html>"), returnTrue, identity)
 	page, err := f.GetPage("hello")
 
 	expectedLinks := []string{"link1"}
@@ -97,7 +97,7 @@ func TestWhenClientReturnsSameLinkTwiceReturnsOnlyOneLink(t *testing.T) {
 }
 
 func TestWhenClientReturnsOneHrefAndValidatorReturnsFalseDoesNotAddLink(t *testing.T) {
-	f := NewWebFetcher(returnString("<html> <a href=\"link1\"> <a href=\"link2\"> </html>"), returnFalse, identity)
+	f := NewWebFetcher(returnString("<html> <a href=\"link1\"></a> <a href=\"link2\"></a> </html>"), returnFalse, identity)
 	page, err := f.GetPage("hello")
 
 	expectedLinks := []string{}
@@ -107,7 +107,7 @@ func TestWhenClientReturnsOneHrefAndValidatorReturnsFalseDoesNotAddLink(t *testi
 }
 
 func TestWhenClientReturnsHrefInOtherElementThanANotReturnedAsLink(t *testing.T) {
-	f := NewWebFetcher(returnString("<html> <b href=\"link1\"> </html>"), returnTrue, identity)
+	f := NewWebFetcher(returnString("<html> <b href=\"link1\"> </b> </html>"), returnTrue, identity)
 	page, err := f.GetPage("hello")
 
 	expectedLinks := []string{}
@@ -116,10 +116,10 @@ func TestWhenClientReturnsHrefInOtherElementThanANotReturnedAsLink(t *testing.T)
 	assert.Equal(t, expectedLinks, page.Links)
 }
 
-func TestWhenTheLinkAddedIsTheRelativisedOne(t *testing.T) {
+func TestWhenTheLinksAddedAsAbsolute(t *testing.T) {
 	absolute := func(string) string { return "absolute" }
 
-	f := NewWebFetcher(returnString("<html> <a href=\"link1\"> </html>"), returnTrueFor("absolute"), absolute)
+	f := NewWebFetcher(returnString("<html> <a href=\"link1\"></a> </html>"), returnTrueFor("absolute"), absolute)
 	page, err := f.GetPage("hello")
 
 	expectedLinks := []string{"absolute"}

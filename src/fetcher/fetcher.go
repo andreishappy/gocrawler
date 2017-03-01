@@ -9,7 +9,7 @@ import (
 type HttpGetter func(url string) (resp *http.Response, err error)
 
 type Fetcher interface {
-	GetPage(url string) (*Page, error)
+	GetPage(url string) (Page, error)
 }
 
 type Page struct {
@@ -23,12 +23,20 @@ func NewPage(url string) Page {
 }
 
 func (f Page)WithAssets(assets ...string) Page {
-	f.Assets = assets
+	if len(assets) == 0 {
+		f.Assets = []string{}
+	} else {
+		f.Assets = assets
+	}
 	return f
 }
 
 func (f Page)WithLinks(links ...string) Page {
-	f.Links = links
+	if len(links) == 0 {
+		f.Links = []string{}
+	} else {
+		f.Links = links
+	}
 	return f
 }
 
@@ -42,14 +50,16 @@ type WebFetcher struct {
 	absoluteUrl      func(string) string
 }
 
-func (f *WebFetcher) GetPage(url string) (*Page, error) {
+func (f *WebFetcher) GetPage(url string) (p Page, e error) {
 	resp, err := f.get(url)
 	if err != nil {
-		return nil, err
+		e = err
+		return
 	}
 
 	links, assets := f.getLinksAndAssets(resp.Body)
-	return &Page{Url: url, Links: links, Assets: assets}, nil
+	p = Page{Url: url, Links: links, Assets: assets}
+	return
 }
 
 func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, assets []string) {
