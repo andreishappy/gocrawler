@@ -3,8 +3,8 @@ package crawler
 import (
 	"fmt"
 	"sync"
-	"fetcher"
-	"concurrentset"
+	"andrei/concurrentset"
+	"andrei/fetcher"
 )
 
 type Crawl struct {
@@ -24,12 +24,12 @@ func (c *Crawl) CrawlUsingSync(url string) map[string]fetcher.Page {
 
 	wg.Add(1)
 	dispatched.Put(url)
-	go c.crawlUsingSyc(url, wg, mutex, &dispatched, result)
+	go c.crawlUsingSyc(url, wg, mutex, dispatched, result)
 	wg.Wait()
 	return result
 }
 
-func (c *Crawl) crawlUsingSyc(url string, wg *sync.WaitGroup, mutex *sync.Mutex, dispatched *concurrentset.ConcurrentStringSet, result map[string]fetcher.Page) {
+func (c *Crawl) crawlUsingSyc(url string, wg *sync.WaitGroup, mutex *sync.Mutex, dispatched concurrentset.ConcurrentStringSet, result map[string]fetcher.Page) {
 	defer wg.Done()
 	//get the links and assets
 	page, e := c.fetcher.GetPage(url)
@@ -47,11 +47,10 @@ func (c *Crawl) crawlUsingSyc(url string, wg *sync.WaitGroup, mutex *sync.Mutex,
 		}
 		dispatched.Put(link)
 		wg.Add(1)
-		fmt.Println("spawning go routine for ", link)
 		go c.crawlUsingSyc(link, wg, mutex, dispatched, result)
 	}
 
 	mutex.Lock()
+	defer mutex.Unlock()
 	result[url] = page
-	mutex.Unlock()
 }

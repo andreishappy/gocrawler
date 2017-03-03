@@ -2,8 +2,8 @@ package crawler
 
 import (
 	"fmt"
-	"fetcher"
-	"concurrentset"
+	"andrei/concurrentset"
+	"andrei/fetcher"
 )
 
 type Chanler struct {
@@ -19,16 +19,18 @@ func (c *Chanler) crawlUsingChannels(url string, ret chan fetcher.Page, dispatch
 	defer close(ret)
 	page, e := c.fetcher.GetPage(url)
 	if e != nil {
+		fmt.Printf("Error fetching %s\n error: %s", url, e)
 		return
 	}
+
+	ret <- page
 
 	results := make([]chan fetcher.Page, 0, len(page.Links))
 	for _, link := range page.Links {
 		if dispatched.Contains(link) || !c.shouldCrawl(link) {
 			continue
 		}
-		fmt.Println("Spawning go routine for " + link)
-		ch := make(chan fetcher.Page)
+		ch := make(chan fetcher.Page, 10)
 		dispatched.Put(link)
 		go c.crawlUsingChannels(link, ch, dispatched)
 		results = append(results, ch)
@@ -39,12 +41,10 @@ func (c *Chanler) crawlUsingChannels(url string, ret chan fetcher.Page, dispatch
 			ret <- p
 		}
 	}
-
-	ret <- page
 }
 
 func (c *Chanler) CrawlUsingChannels(url string) map[string]fetcher.Page {
-	ret := make(chan fetcher.Page)
+	ret := make(chan fetcher.Page, 10)
 	dispatched := concurrentset.NewConcurrentStringSet()
 	dispatched.Put(url)
 	go c.crawlUsingChannels(url, ret, dispatched)

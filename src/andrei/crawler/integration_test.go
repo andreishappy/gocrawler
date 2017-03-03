@@ -3,13 +3,13 @@ package crawler
 import (
 	"testing"
 	"net/http"
-	"fmt"
 	"io"
 	"errors"
 	"bytes"
 	"github.com/stretchr/testify/assert"
-	"fetcher"
-	"configuration"
+	"andrei/configuration"
+	"andrei/collectionutils"
+	"andrei/fetcher"
 )
 
 type nopCloser struct {
@@ -18,16 +18,6 @@ type nopCloser struct {
 
 func (nopCloser) Close() error {
 	return nil
-}
-
-var returnError = func(url string) (resp *http.Response, err error) {
-	return nil, errors.New("fail")
-}
-
-func returnString(bodyString string) func(url string) (resp *http.Response, err error) {
-	return func(url string) (resp *http.Response, err error) {
-		return body(bodyString), nil
-	}
 }
 
 var rootUrl = "http://root.com"
@@ -46,9 +36,8 @@ var returnedByClient = map[string] string {
 	urlUnderDomainButError: emptyhtml,
 }
 
-func graph(url string) (resp *http.Response, err error) {
+func graph(url string) (*http.Response, error) {
 	html, ok := returnedByClient[url]
-	fmt.Println("Called with " + url + " html " + html)
 	if ok {
 		return body(html), nil
 	}
@@ -85,7 +74,6 @@ var emptyhtml = "<html></html>";
 
 func body(bodyString string) *http.Response {
 	b := nopCloser{bytes.NewBufferString(bodyString)}
-	fmt.Println(b)
 	return &http.Response{Body: b}
 }
 
@@ -93,9 +81,18 @@ func TestIntegrationCrawler(t *testing.T) {
 	isValid := configuration.HostUrlValidator(rootUrl)
 	linkBuilder := configuration.AbsolutePathBuilder(rootUrl)
 	f := fetcher.NewWebFetcher(graph, isValid, linkBuilder)
-	pWG := NewCrawler(f, isValid)
-	result := pWG.CrawlUsingSync(rootUrl)
+	c := NewCrawler(f, isValid)
+	result := c.CrawlUsingSync(rootUrl)
 
+	assertSameGraph(t, expected, result)
+}
+
+func TestIntegrationChanler(t *testing.T) {
+	isValid := configuration.HostUrlValidator(rootUrl)
+	linkBuilder := configuration.AbsolutePathBuilder(rootUrl)
+	f := fetcher.NewWebFetcher(graph, isValid, linkBuilder)
+	c := NewChanler(f, isValid)
+	result := c.CrawlUsingChannels(rootUrl)
 	assertSameGraph(t, expected, result)
 }
 
@@ -109,15 +106,7 @@ func assertSameGraph(t *testing.T, expected map[string]fetcher.Page, actual map[
 }
 
 func assertSameElements(t *testing.T, expected []string, actual []string, identifier string) {
-	expectedMap := mapFromArray(expected)
-	actualMap := mapFromArray(actual)
+	expectedMap := collectionutils.MapFromArray(expected)
+	actualMap := collectionutils.MapFromArray(actual)
 	assert.Equal(t, expectedMap, actualMap, "Arrays for " + identifier + " do not have the same elements")
-}
-
-func mapFromArray(array []string) map[string]bool {
-	m := map[string]bool{}
-	for _, element := range array {
-		m[element] = true
-	}
-	return m
 }

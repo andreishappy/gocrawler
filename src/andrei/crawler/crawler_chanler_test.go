@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"errors"
 	"fmt"
-	"fetcher"
+	"andrei/fetcher"
 )
 
 //

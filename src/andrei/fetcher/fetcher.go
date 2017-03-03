@@ -80,11 +80,8 @@ func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, asse
 
 			ok, link := f.getHref(t)
 			link = f.absoluteUrl(link)
-			if ok && f.shouldRecordLink(link) {
-				_, alreadyAdded := linkMap[link]
-				if !alreadyAdded {
-					linkMap[link] = true
-				}
+			if ok && f.shouldRecordLink(link) && !alreadyAdded(link, linkMap) {
+				linkMap[link] = true
 			}
 
 			ok, asset := f.getAsset(t)
@@ -93,6 +90,11 @@ func (f *WebFetcher) getLinksAndAssets(body io.ReadCloser) (links []string, asse
 			}
 		}
 	}
+}
+
+func alreadyAdded(link string, linkMap map[string]bool) bool {
+	_, alreadyAdded := linkMap[link]
+	return alreadyAdded
 }
 
 func sliceFromMap(m map[string]bool) []string {
@@ -117,12 +119,9 @@ func (f *WebFetcher) getAsset(t html.Token) (ok bool, asset string) {
 		}
 	}
 
-	//link -> href
-	//script -> src
-	//img -> src
+	// Did not spend much time working on assets, so only images are returned
+	// This is the place where we would find other assets
 
-
-	//figure out video and audio
 	return
 }
 

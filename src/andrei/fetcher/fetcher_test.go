@@ -18,9 +18,7 @@ type nopCloser struct {
 	io.Reader
 }
 
-var returnError = func(url string) (resp *http.Response, err error) {
-	return nil, errors.New("fail")
-}
+func (nopCloser) Close() error { return nil }
 
 func returnString(bodyString string) func(url string) (resp *http.Response, err error) {
 	return func(url string) (resp *http.Response, err error) {
@@ -28,11 +26,12 @@ func returnString(bodyString string) func(url string) (resp *http.Response, err 
 	}
 }
 
-func (nopCloser) Close() error { return nil }
+var returnError = func(url string) (resp *http.Response, err error) {
+	return nil, errors.New("fail")
+}
 
 func body(bodyString string) *http.Response {
 	b := nopCloser{bytes.NewBufferString(bodyString)}
-	fmt.Println(b)
 	return &http.Response{Body: b}
 }
 
@@ -72,6 +71,7 @@ func TestWhenClientReturnsEmptyBodyReturnsEmptyPage(t *testing.T) {
 	expectedAssets := []string{}
 
 	assert.Nil(t, err)
+	assert.Equal(t, "hello", page.Url)
 	assert.Equal(t, expectedLinks, page.Links)
 	assert.Equal(t, expectedAssets, page.Assets)
 }
@@ -86,7 +86,7 @@ func TestWhenClientReturnsHrefsReturnedAsLinks(t *testing.T) {
 	assert.Len(t, page.Links, 2)
 }
 
-func TestWhenClientReturnsSameLinkTwiceReturnsOnlyOneLink(t *testing.T) {
+func TestDoesNotAddDuplicateLinks(t *testing.T) {
 	f := NewWebFetcher(returnString("<html> <a href=\"link1\"></a> <a href=\"link1\"></a> </html>"), returnTrue, identity)
 	page, err := f.GetPage("hello")
 
@@ -116,7 +116,7 @@ func TestWhenClientReturnsHrefInOtherElementThanANotReturnedAsLink(t *testing.T)
 	assert.Equal(t, expectedLinks, page.Links)
 }
 
-func TestWhenTheLinksAddedAsAbsolute(t *testing.T) {
+func TestLinksAddedAsAbsolute(t *testing.T) {
 	absolute := func(string) string { return "absolute" }
 
 	f := NewWebFetcher(returnString("<html> <a href=\"link1\"></a> </html>"), returnTrueFor("absolute"), absolute)
