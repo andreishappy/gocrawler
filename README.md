@@ -27,6 +27,7 @@ go run src/andrei/gocrawl/gocrawl.go <mode> <url>
 ```
 
 `<mode>` options:
+
 1. `sync` runs the crawler using synchronization
 2. `channel` runs the crawler using channels
 3. `both` runs both
