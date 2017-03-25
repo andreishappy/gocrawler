@@ -7,7 +7,6 @@ import (
 )
 
 
-//improve efficiency by parsing host only once
 func HostUrlValidator(host string) func(url string) bool {
 	hostUrl, err := url.Parse(host)
 	if err != nil {
@@ -16,6 +15,12 @@ func HostUrlValidator(host string) func(url string) bool {
 
 	return func(url string) bool {
 		return hasHost(hostUrl.Host, url)
+	}
+}
+
+func AllValid() func(url string) bool {
+	return func(url string) bool {
+		return true
 	}
 }
 

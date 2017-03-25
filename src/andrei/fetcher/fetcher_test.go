@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"errors"
 	"github.com/stretchr/testify/assert"
-	"fmt"
 	"bytes"
 	"io"
 )
